@@ -1,75 +1,27 @@
 'use strict';
 
-var dictionary, buildDomConstantsObject;
+var dictionaryBuilder, addFunctionality;
 
-dictionary = require('dictionary.js');
+dictionaryBuilder = require('./domConstants/dictionaryBuilder');
+addFunctionality = require('./domConstants/addFunctionality');
 
-function buildConstantsObject(options) {
-  var domConstants, reservedNames;
+function buildDomConstantsDictionary(options) {
+  var constantsDictionary;
 
-  reservedNames = options.reservedNames ? options.reservedNames : [];
-  reservedNames.push('$setFindElementsFunction');
+  constantsDictionary = dictionaryBuilder.build(options);
 
-  domConstants = dictionary.build({
-    reservedNames: reservedNames,
-    dictionaryName: options.dictionaryName,
-    valueKeyFunction: function(nameValue) {
-      return nameValue.value.name;
-    }
-  });
-
-  return domConstants;
-}
-
-function createDomValue(domValue, domConstants, selectorSymbol){
-  var selector = selectorSymbol + domValue;
-
-  return {
-    name: domValue,
-    selector: selector,
-    findElements: function() {
-      return domConstants.$findElements(selector);
-    }
-  };
-}
-
-function extendAddFunction(addDefinition) {
-  var superAdd = addDefinition.constantsBase.$add;
-
-  addDefinition.constantsBase.$add = function(nameValues) {
-    var valuesToAdd, nameValueNames;
-
-    valuesToAdd = {};
-
-    nameValueNames = Object.keys(nameValues);
-
-    nameValueNames.forEach(function(domName){
-      valuesToAdd[domName] = createDomValue(nameValues[domName], addDefinition.constantsBase, addDefinition.selectorSymbol);
-    });
-
-    superAdd(valuesToAdd);
-  };
-}
-
-buildDomConstantsObject = function(options) {
-  var domConstant;
-
-  domConstant = buildConstantsObject(options);
-
-  extendAddFunction({
+  addFunctionality.extend({
     selectorSymbol: options.selectorSymbol,
-    constantsBase: domConstant
+    constantsBase: constantsDictionary
   });
 
-  domConstant.$setFindElementsFunction = function(findElements) {
-    domConstant.$findElements = findElements;
+  constantsDictionary.$setFindElementsFunction = function(findElements) {
+    constantsDictionary.$findElements = findElements;
   };
 
-  return domConstant;
-};
+  return constantsDictionary;
+}
 
 module.exports = {
-  build: buildDomConstantsObject,
-  extendAddFunction: extendAddFunction,
-  createDomValue: createDomValue
+  build: buildDomConstantsDictionary
 };
